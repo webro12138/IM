@@ -14,11 +14,6 @@ class SIRWeighter(Weighter):
         self._RPType = RPType
         self._p = p
         self._q = q
-    
-
-    def assign_activa_prob_batch(self, networks):
-        for network in networks:
-            self.assign_active_prob(network)
 
     def assign_active_prob(self, network):
             if(self._APType == "random"):
@@ -34,7 +29,7 @@ class SIRWeighter(Weighter):
             if(self._RPType == "uniform"):
                 for node in network.nodes():
                     network._graph.nodes[node]["recovery"] = self._q
-
+            network.set_type_of_weight(self.__class__.__name__)
     def get_active_prob(self, network, edge):
         return network[edge[0]][edge[1]]["weight"] 
 
@@ -45,12 +40,14 @@ class SIR(DiffusionBase):
     """This is a class of classical infectious disease models.
 
     """
-    def __init__(self, weighter, MC:int, verbose=True) -> None:
+    def __init__(self, weighter, MC:int, is_return_node_ap=False, verbose=True) -> None:
+        super().__init__()
         self._weighter = weighter
         self.MC = MC
         self._verbose = verbose
+        self.is_return_node_ap = is_return_node_ap
     
-    def step(self, network, S:list)->float:
+    def step(self, network, S:list):
         S = S[:]
         R = []
         t = 0
@@ -75,21 +72,39 @@ class SIR(DiffusionBase):
             
             S = list(set(S) - set(new_R))
             t += 1
-           
-        return len(S) + len(R)
+        if self.is_return_node_ap:
+            return len(S) + len(R), list(set(S) & set(R))
+        else:
+            return len(S) + len(R)
                     
     def simulate(self, network, S:list[any]) -> float:
         self.set_network(network)
         self.set_S(S)
         self._weighter.assign_weights(self._network)
 
-        loops = tqdm(range(self.MC))
+        if(self._verbose):
+            loops = tqdm(range(self.MC))
+        else:
+            loops = range(self.MC)
         IS = 0
+        node_ap = {}
         for _ in loops:
-            IS += self.step(self._network, self._S)
-        IS /= self.MC
+            if self.is_return_node_ap:
+                temp1, temp2 = self.step(self._network, self._S)
+                for node in temp2:
+                    node_ap[node] = node_ap.setdefault(node, 0) + 1
+                IS += temp1
+            else:
+                IS += self.step(self._network, self._S)
         
-        return IS
+        if self.is_return_node_ap:
+            for node in node_ap:
+                node_ap[node] /= self.MC
+            IS = IS / self.MC
+            return IS, node_ap
+        else:
+            IS = IS / self.MC
+            return IS
     
     def __call__(self, network, S: list):
         return self.simulate(network, S)
@@ -116,5 +131,7 @@ class SIR(DiffusionBase):
         for node in self._network.nodes():
             if node not in self._S and node in neighbors:
                 edv += 1 - self.inactive_probability(node)
-      
         return edv
+    
+    def set_is_return_node_ap(self, value):
+        self.is_return_node_ap = value

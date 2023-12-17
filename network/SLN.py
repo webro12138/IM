@@ -8,6 +8,11 @@ class SLN(Network):
         if(type(graph) == nx.DiGraph):
             self.gtype="directed"
         self._graph = graph
+        allnodes = self.nodes()
+        
+        self.index_of_nodes = {}
+        for i in range(self.number_of_nodes()):
+            self.index_of_nodes[allnodes[i]] = i 
         
     def number_of_edges(self):
         return self._graph.number_of_edges()
@@ -20,7 +25,21 @@ class SLN(Network):
     
     def nodes(self):
         return list(self._graph.nodes)
+    
+    def get_node_index(self, v):
+        """给定节点id获得节点位置索引
+           输入:节点v
+           输出:节点索引
+        """
+        return self.index_of_nodes[v]
 
+    def get_index_from_node_banches(self, nodes):
+    
+        nodes_index = []
+        for node in nodes:
+            nodes_index.append(self.index_of_nodes[node])
+        return nodes_index
+    
     def __getitem__(self, key):
         return self._graph[key]
 

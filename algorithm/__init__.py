@@ -7,3 +7,6 @@ from algorithm.SAW_ASA import SAW_ASA
 from algorithm.NCVoteRank import NCVoteRank
 from algorithm.PageRank import PageRank
 from algorithm.DegreeDiscount import DegreeDiscount
+from algorithm.NDDAGCN import NDDAGCN
+from algorithm.XgboostIM import XgboostIM
+from algorithm.DeepIM.DeepIM import DeepIM

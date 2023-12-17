@@ -1,8 +1,9 @@
 from constant import DATASETS_PATH, NETWORK_DATASETS, BASE_MULTILAYER_NETWORK_DATASETS, SINGLE_LAYER_NETWORK_DATASETS, LF_MULTILAYER_NETWORK_DATASETS
-from utils import read_list_for_txt
+from utils import read_list_for_txt, read_dict
 import networkx as nx 
 import os
 from network import MLN, SLN
+import numpy as np
 def load_networks(names, gtypes, verbose=True):
     assert isinstance(names, list) or isinstance(gtypes, str), "names必须为list或str类型"
     if(isinstance(names, str)):
@@ -161,3 +162,40 @@ def print_datasets_info(network):
          print(f"共有{network.number_of_layers()}个层")
 
     print("=================")
+    
+def load_features(name, graph, type="ndd_agcn"):
+    if(type=="ndd_agcn"):
+        path = os.path.join(DATASETS_PATH, "SLNDatasets", name, "features.txt")
+    else:
+        path = os.path.join(DATASETS_PATH, "SLNDatasets", name, "xgboost_features.txt")
+        features = read_dict(path)
+
+        return features
+    features = read_dict(path)
+    x = []
+    for i in graph.nodes:
+        x.append(features[i].tolist())
+    x = normalize(x)
+    x = np.array(x)
+
+    return x
+
+def normalize(features):
+    if(type(features[0][0]) == list):
+        for i in range(len(features)):
+            for j in range(len(features[i])):
+                features[i][j] = (features[i][j] - np.min(features[i][j])) / (np.max(features[i][j] - np.min(features[i][j])))
+
+
+        for i in range(len(features)):
+            for j in range(len(features[i])):
+                features[i][j] = (features[i][j] - np.mean(features[i][j])) / np.std(features[i][j])
+        
+    else:
+        for j in range(len(features)):
+            features[j] = (features[j] - np.min(features[j])) / (np.max(features[j] - np.min(features[j])))
+                
+        for j in range(len(features)):
+                features[j] = (features[j] - np.mean(features[j])) / np.std(features[j])
+                
+    return features

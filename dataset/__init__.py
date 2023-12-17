@@ -1,1 +1,1 @@
-from dataset.load import load_network, load_networks
+from dataset.load import load_network, load_networks, load_features

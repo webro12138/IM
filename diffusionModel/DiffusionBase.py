@@ -8,6 +8,10 @@ class Weighter(object):
             self.assign_active_prob(network)
             self.assign_active_threhsold(network)
 
+    def assign_activa_prob_batch(self, networks):
+        for network in networks:
+            self.assign_active_prob(network)
+        
     def assign_active_prob(self, network):
         pass
 
@@ -24,7 +28,8 @@ class DiffusionBase(object):
     def __init__(self):
         self._S = None
         self._weighter = None
- 
+        self._name = self.__class__.__name__
+        
     def __call__(self,network, S:list):
         self.set_S(S)
         return self.simulate(network, S)

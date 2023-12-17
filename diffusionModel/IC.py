@@ -4,11 +4,13 @@ from tqdm import tqdm
 
 class ICWeighter(Weighter):
 
-    def __init__(self, APType="random", p=None):
+    def __init__(self, APType="random", p=None, seed=0):
         super(Weighter, self)
         assert APType in ["uniform", "random"], "APType的值只能时'random'或'uniform'"
         self._APType = APType
         self._p = p
+        if(seed != None):
+            random.seed(seed)
     
 
 
@@ -19,20 +21,21 @@ class ICWeighter(Weighter):
             if(self._APType == "uniform"):
                 for node1, node2 in network.edges():
                     network[node1][node2]["weight"] = self._p
-
+            network.set_type_of_weight(self.__class__.__name__)
     def get_active_prob(self, network, edge):
         return network[edge[0]][edge[1]]["weight"] 
 
 class IC(DiffusionBase):
 
-    def __init__(self, weighter=None, MC=10000, verbose=True):
+    def __init__(self, weighter=None, MC=10000, is_return_node_ap=False,  verbose=True):
         super().__init__()
         self._S = []
         self._weighter = weighter
         self._MC = MC
         self._verbose = verbose
         self._network = None
-
+        self.is_return_node_ap = is_return_node_ap
+        
     def simulate(self, network, S):
         self._network = network
         self._S = S
@@ -44,19 +47,37 @@ class IC(DiffusionBase):
             loops = range(self._MC)
 
         influence_spread = 0
+        node_ap = {}
         for _ in loops:
-            influence_spread += self.step()
+            if self.is_return_node_ap:
+                temp1, temp2 = self.step()
+                for node in temp2:
+                    node_ap[node] = node_ap.setdefault(node, 0) + 1
+                
+                influence_spread += temp1
+                
+            else:
+                influence_spread += self.step()
+                
             if self._verbose:
                 loops.set_description("传播模拟")
-        influence_spread = influence_spread / self._MC
-
-        return influence_spread
+        
+        if self.is_return_node_ap:
+            for node in node_ap:
+                node_ap[node] /= self._MC
+            influence_spread = influence_spread / self._MC
+            return influence_spread, node_ap
+        else:
+            influence_spread = influence_spread / self._MC
+            return influence_spread
     
     def gen_weighter(self, APType="uniform", p=0):
         assert self._network != None, "网络为空，请先使用set_network函数置入网络"
         self._weighter = ICWeighter(APType, p)
         self._weighter.gen_active_prob(self._network)
-
+    def set_is_return_node_ap(self, value):
+        self.is_return_node_ap = value
+        
     def step(self):
         A, new_active = self._S[:], self._S[:]
         while new_active:
@@ -68,8 +89,10 @@ class IC(DiffusionBase):
                         one_active.append(nei)
             new_active = list(set(one_active) - set(A))
             A += new_active
-        
-        return len(A)
+        if self.is_return_node_ap:
+            return len(A), A
+        else:
+            return len(A)
         
     def inactive_probability(self, node):
         if(self._network.gtype=="directed"):

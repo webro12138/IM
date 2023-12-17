@@ -1,0 +1,2 @@
+from algorithm.DeepIM.GenerateTrainData import GenerateTrainData
+from algorithm.DeepIM import DeepIM

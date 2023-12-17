@@ -1,9 +1,12 @@
+import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 from algorithm import AlgorithmBase
 from tqdm import tqdm
 from utils import save_json, load_json
 from copy import deepcopy
 import networkx as nx
 import numpy as np
+
 import random
  
 class SAW_ASA(AlgorithmBase):
@@ -34,8 +37,9 @@ class SAW_ASA(AlgorithmBase):
             if(self._features_save_path):
                 save_json(features)
                 print("特征保存成功")
-        
+
         rank = self.node_ranking(features)
+
         candidate_pool = self.candidate_pool_selection(rank)
         S = self.simulated_annealing(candidate_pool)
         return S
