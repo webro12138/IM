@@ -1,0 +1,1 @@
+from model.diffusion_model.IC import IC
